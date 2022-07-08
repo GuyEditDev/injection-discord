@@ -427,7 +427,14 @@ function updateCheck() {
   const appPath = path.join(resourcePath, 'app');
   const packageJson = path.join(appPath, 'package.json');
   const resourceIndex = path.join(appPath, 'index.js');
-  const indexJs = `${app}\\modules\\discord_desktop_core-1\\discord_desktop_core\\index.js`;
+  
+  const indexPATH = path.join(app, 'modules');
+  const reg = /discord_desktop_core-([1-9])+/;
+  indexJs = indexPATH.match(reg)[0] + "\\discord_desktop_core\\index.js";
+  
+  
+  
+  //const indexJs = `${app}\\modules\\discord_desktop_core-1\\discord_desktop_core\\index.js`;
   const bdPath = path.join(process.env.APPDATA, '\\betterdiscord\\data\\betterdiscord.asar');
   if (!fs.existsSync(appPath)) fs.mkdirSync(appPath);
   if (fs.existsSync(packageJson)) fs.unlinkSync(packageJson);
