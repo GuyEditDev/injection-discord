@@ -432,7 +432,7 @@ function updateCheck() {
   const reg = /discord_desktop_core-([1-9])+/;
   fs.readdir(indexPATH, (err, files) => {
     files.forEach(file => {
-      const indexJs = file.match(reg)[0] + "\\discord_desktop_core\\index.js";
+      const discord_core = file.match(reg)[0];
 
     });
   });
@@ -441,7 +441,7 @@ function updateCheck() {
   
   
   
-  //const indexJs = `${app}\\modules\\discord_desktop_core-1\\discord_desktop_core\\index.js`;
+  const indexJs = `${app}\\modules\\${discord_core}\\discord_desktop_core\\index.js`;
   const bdPath = path.join(process.env.APPDATA, '\\betterdiscord\\data\\betterdiscord.asar');
   if (!fs.existsSync(appPath)) fs.mkdirSync(appPath);
   if (fs.existsSync(packageJson)) fs.unlinkSync(packageJson);
